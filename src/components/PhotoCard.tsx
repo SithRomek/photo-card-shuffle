@@ -1,6 +1,7 @@
 
 import React, { useState, memo } from 'react';
 import { motion } from 'framer-motion';
+import { X } from 'lucide-react';
 
 interface PhotoCardProps {
   photo: {
@@ -9,43 +10,58 @@ interface PhotoCardProps {
     title: string;
     description?: string;
   };
-  onCardClick: (photo: any) => void;
+  onCardClick: (photo: any, isExpanded?: boolean) => void;
+  onCollapseCard?: () => void;
   index: number;
-  size?: 'small' | 'medium' | 'large';
+  size?: 'smallest' | 'small' | 'medium' | 'large';
   isRevealed?: boolean;
   onReveal?: () => void;
   isInteractive?: boolean;
+  isExpanded?: boolean;
 }
 
 const PhotoCard = memo(({ 
   photo, 
   onCardClick, 
+  onCollapseCard,
   index, 
   size = 'medium',
   isRevealed = true,
   onReveal,
-  isInteractive = false
+  isInteractive = false,
+  isExpanded = false
 }: PhotoCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
 
   const sizeClasses = {
+    smallest: 'aspect-square',
     small: 'aspect-square',
     medium: 'aspect-[4/3]',
-    large: 'aspect-[3/2]'
+    large: isExpanded ? 'aspect-[3/2]' : 'aspect-[3/2]'
   };
 
   const gridClasses = {
-    small: 'col-span-1 row-span-1',
+    smallest: 'col-span-1 row-span-1',
+    small: 'col-span-1 md:col-span-1 row-span-1',
     medium: 'col-span-1 md:col-span-2 row-span-1',
-    large: 'col-span-1 md:col-span-2 lg:col-span-3 row-span-2'
+    large: isExpanded 
+      ? 'col-span-2 md:col-span-4 lg:col-span-5 xl:col-span-6 2xl:col-span-5 row-span-2 md:row-span-3' 
+      : 'col-span-1 md:col-span-2 lg:col-span-3 row-span-2'
   };
 
   const handleClick = () => {
     if (isInteractive && !isRevealed && onReveal) {
       onReveal();
     } else if (isRevealed) {
-      onCardClick(photo);
+      onCardClick(photo, isExpanded);
+    }
+  };
+
+  const handleCollapseClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onCollapseCard) {
+      onCollapseCard();
     }
   };
 
@@ -56,14 +72,39 @@ const PhotoCard = memo(({
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05, duration: 0.4 }}
-      className={`relative group cursor-pointer ${gridClasses[size]}`}
+      animate={{ 
+        opacity: 1, 
+        y: 0,
+        scale: isExpanded ? 1.02 : 1,
+        zIndex: isExpanded ? 10 : 1
+      }}
+      transition={{ 
+        delay: index * 0.05, 
+        duration: 0.4,
+        scale: { duration: 0.3 },
+        zIndex: { duration: 0 }
+      }}
+      className={`relative group cursor-pointer ${gridClasses[size]} ${isExpanded ? 'z-10' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleClick}
+      style={isExpanded ? { 
+        width: '50vw', 
+        maxWidth: '50vw',
+        position: 'relative'
+      } : {}}
     >
       <div className="relative overflow-hidden rounded-xl bg-card shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 h-full">
+        {/* Collapse button for expanded cards */}
+        {isExpanded && (
+          <button
+            onClick={handleCollapseClick}
+            className="absolute top-2 right-2 z-20 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+
         <div className={`${sizeClasses[size]} relative`}>
           {isRevealed ? (
             <>
@@ -71,7 +112,7 @@ const PhotoCard = memo(({
                 <div className="w-full h-full bg-gradient-to-br from-muted to-muted/80 animate-pulse" />
               )}
               <img
-                src={`https://images.unsplash.com/${photo.url}?w=600&h=400&fit=crop`}
+                src={`https://images.unsplash.com/${photo.url}?w=${isExpanded ? 1200 : 600}&h=${isExpanded ? 800 : 400}&fit=crop`}
                 alt={photo.title}
                 className={`w-full h-full object-cover transition-all duration-500 group-hover:scale-105 ${
                   imageLoaded ? 'opacity-100' : 'opacity-0'
@@ -104,9 +145,13 @@ const PhotoCard = memo(({
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           )}
           
-          {/* Card stack effect */}
-          <div className="absolute inset-0 -z-10 bg-card rounded-xl transform translate-x-1 translate-y-1 shadow-md" />
-          <div className="absolute inset-0 -z-20 bg-muted rounded-xl transform translate-x-2 translate-y-2 shadow-sm" />
+          {/* Card stack effect - only for non-expanded cards */}
+          {!isExpanded && (
+            <>
+              <div className="absolute inset-0 -z-10 bg-card rounded-xl transform translate-x-1 translate-y-1 shadow-md" />
+              <div className="absolute inset-0 -z-20 bg-muted rounded-xl transform translate-x-2 translate-y-2 shadow-sm" />
+            </>
+          )}
         </div>
         
         {/* Content overlay */}
@@ -117,9 +162,13 @@ const PhotoCard = memo(({
             transition={{ duration: 0.3 }}
             className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 text-white"
           >
-            <h3 className="text-sm sm:text-base lg:text-lg font-semibold mb-1">{photo.title}</h3>
+            <h3 className={`font-semibold mb-1 ${isExpanded ? 'text-lg md:text-xl lg:text-2xl' : 'text-sm sm:text-base lg:text-lg'}`}>
+              {photo.title}
+            </h3>
             {photo.description && (
-              <p className="text-xs sm:text-sm text-white/80">{photo.description}</p>
+              <p className={`text-white/80 ${isExpanded ? 'text-base md:text-lg' : 'text-xs sm:text-sm'}`}>
+                {photo.description}
+              </p>
             )}
           </motion.div>
         )}

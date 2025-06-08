@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import Navigation from '@/components/Navigation';
@@ -14,7 +13,7 @@ interface Photo {
 
 interface PhotoGridItem {
   photo: Photo;
-  size: 'small' | 'medium' | 'large';
+  size: 'smallest' | 'small' | 'medium' | 'large';
   isRevealed: boolean;
   isInteractive: boolean;
 }
@@ -23,7 +22,8 @@ const Index = () => {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [photoGrid, setPhotoGrid] = useState<PhotoGridItem[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
-  const [visibleCount, setVisibleCount] = useState(12); // Increased initial load
+  const [visibleCount, setVisibleCount] = useState(24); // Increased to load 24 initially
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
 
   useEffect(() => {
     // Load photos from localStorage
@@ -31,7 +31,7 @@ const Index = () => {
     if (savedPhotos) {
       setPhotos(JSON.parse(savedPhotos));
     } else {
-      // Extended default photos for better demo
+      // Extended default photos for better demo (22 total photos)
       const defaultPhotos: Photo[] = [
         {
           id: '1',
@@ -92,6 +92,78 @@ const Index = () => {
           url: 'photo-1469474968028-56623f02e42e',
           title: 'Golden Hour',
           description: 'When light transforms the ordinary into magic'
+        },
+        {
+          id: '11',
+          url: 'photo-1506905925346-21bda4d32df4',
+          title: 'Mountain Peak',
+          description: 'Standing tall above the clouds'
+        },
+        {
+          id: '12',
+          url: 'photo-1441974231531-c6227db76b6e',
+          title: 'Forest Path',
+          description: 'A journey through ancient woodlands'
+        },
+        {
+          id: '13',
+          url: 'photo-1470071459604-3b5ec3a7fe05',
+          title: 'Starry Night',
+          description: 'The cosmos in all its glory'
+        },
+        {
+          id: '14',
+          url: 'photo-1439066615861-d1af74d74000',
+          title: 'Lake Serenity',
+          description: 'Perfect reflection in still waters'
+        },
+        {
+          id: '15',
+          url: 'photo-1418065460487-3747441440b6',
+          title: 'Forest Mist',
+          description: 'Ethereal fog through towering trees'
+        },
+        {
+          id: '16',
+          url: 'photo-1501594907352-04cda38ebc29',
+          title: 'Autumn Colors',
+          description: 'Nature\'s magnificent seasonal display'
+        },
+        {
+          id: '17',
+          url: 'photo-1446329813274-7c9036bd9a1f',
+          title: 'Desert Landscape',
+          description: 'Vast expanses of golden sand'
+        },
+        {
+          id: '18',
+          url: 'photo-1464822759844-d150ad6caaad',
+          title: 'Ocean Waves',
+          description: 'The rhythmic dance of the sea'
+        },
+        {
+          id: '19',
+          url: 'photo-1493246507139-91e8fad9978e',
+          title: 'Mountain Lake',
+          description: 'Crystal clear waters in alpine setting'
+        },
+        {
+          id: '20',
+          url: 'photo-1426604966848-d7adac402bff',
+          title: 'Northern Lights',
+          description: 'Aurora borealis painting the sky'
+        },
+        {
+          id: '21',
+          url: 'photo-1475924156734-496f6cac6ec1',
+          title: 'Tropical Paradise',
+          description: 'Palm trees swaying in ocean breeze'
+        },
+        {
+          id: '22',
+          url: 'photo-1447752875215-b2761acb3c5d',
+          title: 'Urban Sunset',
+          description: 'City lights meeting golden hour'
         }
       ];
       setPhotos(defaultPhotos);
@@ -100,11 +172,30 @@ const Index = () => {
   }, []);
 
   const generatePhotoGrid = useCallback((photoList: Photo[], count: number) => {
-    const sizes: ('small' | 'medium' | 'large')[] = ['large', 'medium', 'small', 'medium', 'small', 'small'];
-    const sizePattern = sizes.concat(['medium', 'small', 'large', 'small', 'medium']);
+    const sizes: ('smallest' | 'small' | 'medium' | 'large')[] = ['large', 'medium', 'small', 'medium', 'small', 'smallest'];
+    const sizePattern = sizes.concat(['medium', 'small', 'large', 'smallest', 'medium', 'small']);
     
     return photoList.slice(0, count).map((photo, index) => {
-      const size = sizePattern[index % sizePattern.length];
+      let size = sizePattern[index % sizePattern.length];
+      
+      // Dynamic sizing based on expanded card
+      if (expandedCardId) {
+        if (photo.id === expandedCardId) {
+          size = 'large'; // Expanded card becomes large (50% viewport)
+        } else {
+          // Surrounding cards become smaller
+          const expandedIndex = photoList.findIndex(p => p.id === expandedCardId);
+          const distance = Math.abs(index - expandedIndex);
+          if (distance <= 2) {
+            size = 'smallest';
+          } else if (distance <= 4) {
+            size = 'small';
+          } else {
+            size = 'medium';
+          }
+        }
+      }
+      
       const groupIndex = Math.floor(index / 3);
       const positionInGroup = index % 3;
       
@@ -120,7 +211,7 @@ const Index = () => {
         isInteractive
       };
     });
-  }, []);
+  }, [expandedCardId]);
 
   useEffect(() => {
     if (photos.length > 0) {
@@ -134,7 +225,17 @@ const Index = () => {
     ));
   };
 
-  const handleCardClick = (photo: Photo) => {
+  const handleCardClick = (photo: Photo, isExpanded: boolean = false) => {
+    if (!isExpanded) {
+      // If card is not expanded and it's small/smallest, expand it
+      const currentItem = photoGrid.find(item => item.photo.id === photo.id);
+      if (currentItem && (currentItem.size === 'small' || currentItem.size === 'smallest')) {
+        setExpandedCardId(photo.id);
+        return;
+      }
+    }
+    
+    // Otherwise, open slideshow
     setSelectedPhoto(photo.id);
   };
 
@@ -142,10 +243,14 @@ const Index = () => {
     setSelectedPhoto(null);
   };
 
+  const handleCollapseCard = () => {
+    setExpandedCardId(null);
+  };
+
   const handleScroll = useCallback(() => {
-    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 1500) { // Reduced threshold for earlier loading
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 1500) {
       if (visibleCount < photos.length) {
-        setVisibleCount(prev => Math.min(prev + 9, photos.length)); // Load more at once
+        setVisibleCount(prev => Math.min(prev + 9, photos.length));
       }
     }
   }, [visibleCount, photos.length]);
@@ -155,10 +260,9 @@ const Index = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
-  // Preload images for better performance
   useEffect(() => {
     const preloadImages = () => {
-      photoGrid.slice(0, visibleCount + 6).forEach(item => { // Preload 6 more images ahead
+      photoGrid.slice(0, visibleCount + 6).forEach(item => {
         const img = new Image();
         img.src = `https://images.unsplash.com/${item.photo.url}?w=600&h=400&fit=crop`;
       });
@@ -196,11 +300,13 @@ const Index = () => {
                     key={item.photo.id}
                     photo={item.photo}
                     onCardClick={handleCardClick}
+                    onCollapseCard={handleCollapseCard}
                     index={index}
                     size={item.size}
                     isRevealed={item.isRevealed}
                     onReveal={() => handleRevealPhoto(index)}
                     isInteractive={item.isInteractive}
+                    isExpanded={expandedCardId === item.photo.id}
                   />
                 ))}
               </div>
