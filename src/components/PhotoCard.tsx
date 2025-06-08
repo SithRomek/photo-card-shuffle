@@ -70,8 +70,7 @@ const PhotoCard = ({
             <div className="w-full h-full bg-gradient-to-br from-muted to-muted/80 flex items-center justify-center">
               <motion.div
                 animate={{ 
-                  scale: isHovered ? 1.1 : 1,
-                  rotate: isHovered ? 5 : 0 
+                  scale: isHovered ? 1.1 : 1
                 }}
                 className="text-center p-6"
               >
@@ -81,7 +80,7 @@ const PhotoCard = ({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                   </svg>
                 </div>
-                <p className="text-sm text-muted-foreground font-medium">Click to reveal</p>
+                <p className="text-xs sm:text-sm text-muted-foreground font-medium">Click to reveal</p>
               </motion.div>
             </div>
           )}
@@ -102,11 +101,11 @@ const PhotoCard = ({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: isHovered ? 1 : 0, y: isHovered ? 0 : 20 }}
             transition={{ duration: 0.3 }}
-            className="absolute bottom-0 left-0 right-0 p-4 text-white"
+            className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 text-white"
           >
-            <h3 className="text-lg font-semibold mb-1">{photo.title}</h3>
+            <h3 className="text-sm sm:text-base lg:text-lg font-semibold mb-1">{photo.title}</h3>
             {photo.description && (
-              <p className="text-sm text-white/80">{photo.description}</p>
+              <p className="text-xs sm:text-sm text-white/80">{photo.description}</p>
             )}
           </motion.div>
         )}
