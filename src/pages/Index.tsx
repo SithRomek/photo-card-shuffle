@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import Navigation from '@/components/Navigation';
 import PhotoCard from '@/components/PhotoCard';
@@ -12,9 +11,18 @@ interface Photo {
   description?: string;
 }
 
+interface PhotoGridItem {
+  photo: Photo;
+  size: 'small' | 'medium' | 'large';
+  isRevealed: boolean;
+  isInteractive: boolean;
+}
+
 const Index = () => {
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [photoGrid, setPhotoGrid] = useState<PhotoGridItem[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(6);
 
   useEffect(() => {
     // Load photos from localStorage
@@ -22,7 +30,7 @@ const Index = () => {
     if (savedPhotos) {
       setPhotos(JSON.parse(savedPhotos));
     } else {
-      // Set default placeholder photos
+      // Extended default photos for better demo
       const defaultPhotos: Photo[] = [
         {
           id: '1',
@@ -53,12 +61,77 @@ const Index = () => {
           url: 'photo-1518877593221-1f28583780b4',
           title: 'Ocean Majesty',
           description: 'The incredible power and grace of marine life'
+        },
+        {
+          id: '6',
+          url: 'photo-1472396961693-142e6e269027',
+          title: 'Wildlife Wonder',
+          description: 'Majestic creatures in their natural habitat'
+        },
+        {
+          id: '7',
+          url: 'photo-1433086966358-54859d0ed716',
+          title: 'Mountain Vista',
+          description: 'Breathtaking landscapes that inspire wonder'
+        },
+        {
+          id: '8',
+          url: 'photo-1465146344425-f00d5f5c8f07',
+          title: 'Floral Symphony',
+          description: 'Nature\'s delicate artistry in full bloom'
+        },
+        {
+          id: '9',
+          url: 'photo-1482938289607-e9573fc25ebb',
+          title: 'River Journey',
+          description: 'Flowing waters through pristine wilderness'
+        },
+        {
+          id: '10',
+          url: 'photo-1469474968028-56623f02e42e',
+          title: 'Golden Hour',
+          description: 'When light transforms the ordinary into magic'
         }
       ];
       setPhotos(defaultPhotos);
       localStorage.setItem('photoGallery', JSON.stringify(defaultPhotos));
     }
   }, []);
+
+  const generatePhotoGrid = useCallback((photoList: Photo[], count: number) => {
+    const sizes: ('small' | 'medium' | 'large')[] = ['large', 'medium', 'small', 'medium', 'small', 'small'];
+    const sizePattern = sizes.concat(['medium', 'small', 'large', 'small', 'medium']);
+    
+    return photoList.slice(0, count).map((photo, index) => {
+      const size = sizePattern[index % sizePattern.length];
+      const groupIndex = Math.floor(index / 3);
+      const positionInGroup = index % 3;
+      
+      // First photo in each group of 3 is always revealed
+      // Other photos require interaction to reveal
+      const isRevealed = positionInGroup === 0;
+      const isInteractive = !isRevealed;
+      
+      return {
+        photo,
+        size,
+        isRevealed,
+        isInteractive
+      };
+    });
+  }, []);
+
+  useEffect(() => {
+    if (photos.length > 0) {
+      setPhotoGrid(generatePhotoGrid(photos, visibleCount));
+    }
+  }, [photos, visibleCount, generatePhotoGrid]);
+
+  const handleRevealPhoto = (index: number) => {
+    setPhotoGrid(prev => prev.map((item, i) => 
+      i === index ? { ...item, isRevealed: true } : item
+    ));
+  };
 
   const handleCardClick = (photo: Photo) => {
     setSelectedPhoto(photo.id);
@@ -67,6 +140,21 @@ const Index = () => {
   const handleCloseSlideshow = () => {
     setSelectedPhoto(null);
   };
+
+  const handleScroll = useCallback(() => {
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 1000) {
+      if (visibleCount < photos.length) {
+        setVisibleCount(prev => Math.min(prev + 6, photos.length));
+      }
+    }
+  }, [visibleCount, photos.length]);
+
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
+
+  const revealedPhotos = photoGrid.filter(item => item.isRevealed).map(item => item.photo);
 
   return (
     <>
@@ -81,19 +169,23 @@ const Index = () => {
                 Photo Gallery
               </h1>
               <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
-                Discover moments captured in time. Click on any photo to experience our interactive card-deck slideshow.
+                Discover moments captured in time. Interact with photos to reveal hidden gems and click to experience our slideshow.
               </p>
             </div>
 
             {/* Photo Grid */}
-            {photos.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto">
-                {photos.map((photo, index) => (
+            {photoGrid.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 max-w-7xl mx-auto auto-rows-max">
+                {photoGrid.map((item, index) => (
                   <PhotoCard
-                    key={photo.id}
-                    photo={photo}
+                    key={item.photo.id}
+                    photo={item.photo}
                     onCardClick={handleCardClick}
                     index={index}
+                    size={item.size}
+                    isRevealed={item.isRevealed}
+                    onReveal={() => handleRevealPhoto(index)}
+                    isInteractive={item.isInteractive}
                   />
                 ))}
               </div>
@@ -110,6 +202,16 @@ const Index = () => {
                 </p>
               </div>
             )}
+
+            {/* Loading indicator */}
+            {visibleCount < photos.length && (
+              <div className="text-center mt-12">
+                <div className="inline-flex items-center px-4 py-2 bg-primary/10 rounded-full">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
+                  <span className="text-sm text-primary">Loading more photos...</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -118,7 +220,7 @@ const Index = () => {
       <AnimatePresence>
         {selectedPhoto && (
           <PhotoSlideshow
-            photos={photos}
+            photos={revealedPhotos}
             initialPhotoId={selectedPhoto}
             onClose={handleCloseSlideshow}
           />
