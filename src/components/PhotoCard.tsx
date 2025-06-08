@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { motion } from 'framer-motion';
 
 interface PhotoCardProps {
@@ -17,7 +17,7 @@ interface PhotoCardProps {
   isInteractive?: boolean;
 }
 
-const PhotoCard = ({ 
+const PhotoCard = memo(({ 
   photo, 
   onCardClick, 
   index, 
@@ -27,6 +27,7 @@ const PhotoCard = ({
   isInteractive = false
 }: PhotoCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const sizeClasses = {
     small: 'aspect-square',
@@ -48,11 +49,15 @@ const PhotoCard = ({
     }
   };
 
+  const handleImageLoad = () => {
+    setImageLoaded(true);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
+      transition={{ delay: index * 0.05, duration: 0.4 }}
       className={`relative group cursor-pointer ${gridClasses[size]}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -61,11 +66,20 @@ const PhotoCard = ({
       <div className="relative overflow-hidden rounded-xl bg-card shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 h-full">
         <div className={`${sizeClasses[size]} relative`}>
           {isRevealed ? (
-            <img
-              src={`https://images.unsplash.com/${photo.url}?w=600&h=400&fit=crop`}
-              alt={photo.title}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
+            <>
+              {!imageLoaded && (
+                <div className="w-full h-full bg-gradient-to-br from-muted to-muted/80 animate-pulse" />
+              )}
+              <img
+                src={`https://images.unsplash.com/${photo.url}?w=600&h=400&fit=crop`}
+                alt={photo.title}
+                className={`w-full h-full object-cover transition-all duration-500 group-hover:scale-105 ${
+                  imageLoaded ? 'opacity-100' : 'opacity-0'
+                }`}
+                onLoad={handleImageLoad}
+                loading="lazy"
+              />
+            </>
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-muted to-muted/80 flex items-center justify-center">
               <motion.div
@@ -86,7 +100,7 @@ const PhotoCard = ({
           )}
           
           {/* Overlay gradient */}
-          {isRevealed && (
+          {isRevealed && imageLoaded && (
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           )}
           
@@ -96,7 +110,7 @@ const PhotoCard = ({
         </div>
         
         {/* Content overlay */}
-        {isRevealed && (
+        {isRevealed && imageLoaded && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: isHovered ? 1 : 0, y: isHovered ? 0 : 20 }}
@@ -112,6 +126,8 @@ const PhotoCard = ({
       </div>
     </motion.div>
   );
-};
+});
+
+PhotoCard.displayName = 'PhotoCard';
 
 export default PhotoCard;

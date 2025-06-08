@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import Navigation from '@/components/Navigation';
@@ -22,7 +23,7 @@ const Index = () => {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [photoGrid, setPhotoGrid] = useState<PhotoGridItem[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
-  const [visibleCount, setVisibleCount] = useState(6);
+  const [visibleCount, setVisibleCount] = useState(12); // Increased initial load
 
   useEffect(() => {
     // Load photos from localStorage
@@ -142,9 +143,9 @@ const Index = () => {
   };
 
   const handleScroll = useCallback(() => {
-    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 1000) {
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 1500) { // Reduced threshold for earlier loading
       if (visibleCount < photos.length) {
-        setVisibleCount(prev => Math.min(prev + 6, photos.length));
+        setVisibleCount(prev => Math.min(prev + 9, photos.length)); // Load more at once
       }
     }
   }, [visibleCount, photos.length]);
@@ -153,6 +154,20 @@ const Index = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
+
+  // Preload images for better performance
+  useEffect(() => {
+    const preloadImages = () => {
+      photoGrid.slice(0, visibleCount + 6).forEach(item => { // Preload 6 more images ahead
+        const img = new Image();
+        img.src = `https://images.unsplash.com/${item.photo.url}?w=600&h=400&fit=crop`;
+      });
+    };
+    
+    if (photoGrid.length > 0) {
+      preloadImages();
+    }
+  }, [photoGrid, visibleCount]);
 
   const revealedPhotos = photoGrid.filter(item => item.isRevealed).map(item => item.photo);
 
